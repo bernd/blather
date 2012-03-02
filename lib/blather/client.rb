@@ -74,9 +74,10 @@ at_exit do
 
     Blather.logger.level = Logger::DEBUG if options[:debug]
 
-    trap(:INT) { EM.stop }
-    trap(:TERM) { EM.stop }
-    EM.run { client.run }
+    # XXX Find a better way to exit.
+    trap(:INT) { client.close; exit 0 }
+    trap(:TERM) { client.close; exit 0 }
+    client.run
   end
 
   if options[:daemonize]
