@@ -2,6 +2,11 @@
 
 XMPP DSL (and more) for Ruby written on EventMachine and Nokogiri.
 
+# ATTENTION
+
+This is an experimental fork where I try to replace EventMachine with
+[Celluloid::IO](https://github.com/celluloid/celluloid-io).
+
 ## Features
 
 * evented architecture
