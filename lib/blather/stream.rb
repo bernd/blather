@@ -1,3 +1,5 @@
+require 'blather/celluloid'
+
 module Blather
 
   # # A pure XMPP stream.
@@ -47,7 +49,7 @@ module Blather
   #
   #     client = Blather::Stream.start MyClient.new, "jid@domain/res", "pass"
   #     client.write "[pure xml over the wire]"
-  class Stream < EventMachine::Connection
+  class Stream
     # Connection not found
     class NoConnection < RuntimeError; end
     class ConnectionFailed < RuntimeError; end
@@ -110,7 +112,10 @@ module Blather
     # this catches that and returns false prompting for another attempt
     # @private
     def self.connect(host, port, conn, client, jid, pass, connect_timeout = nil)
-      EM.connect host, port, conn, client, jid, pass, connect_timeout
+      Blather::Celluloid.new(host, port, self, client, jid, pass, connect_timeout).run
+      # XXX Use this later. It is easiert to debug without the supervisor.
+      #Blather::Celluloid.supervise(host, port, self, client, jid, pass, connect_timeout)
+      #sleep
     rescue NoConnection
       false
     end
@@ -127,14 +132,13 @@ module Blather
     def send(stanza)
       data = stanza.respond_to?(:to_xml) ? stanza.to_xml(:save_with => Nokogiri::XML::Node::SaveOptions::AS_XML) : stanza.to_s
       Blather.log "SENDING: (#{caller[1]}) #{data}"
-      send_data data
+      @connection.write(data)
     end
 
     # Called by EM.connect to initialize stream variables
     # @private
-    def initialize(client, jid, pass, connect_timeout = nil)
-      super()
-
+    def initialize(connection, client, jid, pass, connect_timeout = nil)
+      @connection = connection
       @error = nil
       @receiver = @client = client
 
@@ -148,12 +152,14 @@ module Blather
     # this kicks off the starttls/authorize/bind process
     # @private
     def connection_completed
-      if @connect_timeout
-        @connect_timer = EM::Timer.new @connect_timeout do
-          raise ConnectionTimeout, "Stream timed out after #{@connect_timeout} seconds." unless started?
-        end
-      end
+      # XXX Need to find an equivalent with celluloid.
+      #if @connect_timeout
+      #  @connect_timer = EM::Timer.new @connect_timeout do
+      #    raise ConnectionTimeout, "Stream timed out after #{@connect_timeout} seconds." unless started?
+      #  end
+      #end
       @connected = true
+      # XXX Disabled in upstream blather as well.
 #      @keepalive = EM::PeriodicTimer.new(60) { send_data ' ' }
       start
     end
@@ -171,6 +177,13 @@ module Blather
       stop
     end
     
+    def start_tls(options = {})
+      ssl_context = OpenSSL::SSL::SSLContext.new
+      peer_cert = @connection.start_ssl(ssl_context)
+      ssl_verify_peer(peer_cert)
+      STDERR.puts "SSL DONE" # XXX remove
+    end
+
     # Called by EM to verify the peer certificate. If a certificate store directory 
     # has not been configured don't worry about peer verification. At least it is encrypted
     # We Log the certificate so that you can add it to the trusted store easily if desired
@@ -185,6 +198,14 @@ module Blather
         close_connection unless trusted
       end
     end
+
+    # XXX This will close the socket too early. Some callback wants to write
+    #     something after that.
+    def close_connection
+      STDERR.puts "CLOSING" # XXX remove
+      @connection.close
+    end
+    alias_method :close_connection_after_writing, :close_connection
 
     # Called by EM after the connection has started
     # @private
