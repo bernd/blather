@@ -1,7 +1,13 @@
 # Require the necessary files
+
+# XXX The following libraries have been disabled until I whip up a non-EM
+#     implementation. File transfer will be broken for now.
+#
+# - blather/core_ext/eventmachine (socks5 client implementation)
+# - blather/file_transfer/ibb
+# - blather/file_transfer/s5b
 %w[
   rubygems
-  eventmachine
   niceogiri
   ipaddr
   digest/md5
@@ -12,7 +18,6 @@
   active_support/core_ext/class/attribute
   active_support/core_ext/object/blank
 
-  blather/core_ext/eventmachine
   blather/core_ext/ipaddr
 
   blather/cert_store
@@ -21,8 +26,6 @@
   blather/errors/stanza_error
   blather/errors/stream_error
   blather/file_transfer
-  blather/file_transfer/ibb
-  blather/file_transfer/s5b
   blather/jid
   blather/roster
   blather/roster_item
