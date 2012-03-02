@@ -8,6 +8,9 @@ module Blather
     def initialize(host, port, stream, client, jid, pass, connect_timeout)
       @socket = ::Celluloid::IO::TCPSocket.new(host, port)
       @stream = stream.new(self, client, jid, pass, connect_timeout)
+
+# later
+#      run!
     end
 
     def start_ssl(ssl_context)
@@ -31,6 +34,8 @@ module Blather
       @stream.post_init
 
       loop { handle_data!(@socket.readpartial(4096)) }
+# Might be used later.
+#    rescue IOError
     end
 
     def handle_data(chunk)
