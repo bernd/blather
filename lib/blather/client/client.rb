@@ -176,7 +176,8 @@ module Blather
 
     # @private
     def unbind
-      call_handler_for(:disconnected, nil) || (EM.reactor_running? && EM.stop)
+      # XXX Check if the EM can be removed without replacement.
+      call_handler_for(:disconnected, nil) # || (EM.reactor_running? && EM.stop)
     end
 
     # @private
